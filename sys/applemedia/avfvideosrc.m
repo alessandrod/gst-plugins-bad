@@ -56,7 +56,7 @@ static GstStaticPadTemplate src_template = GST_STATIC_PAD_TEMPLATE ("src",
         "height = " GST_VIDEO_SIZE_RANGE "; "
 
         GST_VIDEO_CAPS_MAKE_WITH_FEATURES
-        (GST_CAPS_FEATURE_META_GST_VIDEO_GL_TEXTURE_UPLOAD_META,
+        (GST_CAPS_FEATURE_MEMORY_GL_MEMORY,
             "RGBA") "; "
 ));
 
@@ -398,7 +398,7 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 
         if (gst_format == GST_VIDEO_FORMAT_BGRA) {
           GstCaps *rgba_caps = GST_AVF_CAPS_NEW (GST_VIDEO_FORMAT_RGBA, dimensions.width, dimensions.height, fps_n, fps_d);
-          gst_caps_set_features (rgba_caps, 0, gst_caps_features_new (GST_CAPS_FEATURE_META_GST_VIDEO_GL_TEXTURE_UPLOAD_META, NULL));
+          gst_caps_set_features (rgba_caps, 0, gst_caps_features_new (GST_CAPS_FEATURE_MEMORY_GL_MEMORY, NULL));
           gst_caps_append (result, rgba_caps);
         }
       }
@@ -748,7 +748,11 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
     gst_query_parse_nth_allocation_meta (query, idx, &upload_meta_params);
     if (gst_structure_get (upload_meta_params, "gst.gl.GstGLContext",
           GST_GL_TYPE_CONTEXT, &context, NULL) && context) {
+      GstCaps *query_caps;
+      gst_query_parse_allocation (query, &query_caps, NULL);
       textureCache = gst_core_video_texture_cache_new (context);
+      gst_core_video_texture_cache_set_format (textureCache, "RGB", query_caps);
+      gst_caps_unref (query_caps);
       gst_object_unref (context);
     }
   }
@@ -876,11 +880,17 @@ didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
   CFRelease (sbuf);
 
   if (textureCache != NULL) {
+      GstBuffer *gl_buffer;
+#if 0
     GstVideoGLTextureType texture_types[4] = {GST_VIDEO_GL_TEXTURE_TYPE_RGBA, 0};
     gst_buffer_add_video_gl_texture_upload_meta (*buf, 
         GST_VIDEO_GL_TEXTURE_ORIENTATION_X_NORMAL_Y_NORMAL,
         1, texture_types,
         gst_core_video_texture_cache_upload, textureCache, NULL, NULL);
+#endif
+    gl_buffer = gst_core_video_texture_cache_get_gl_buffer (textureCache, *buf);
+    gst_buffer_unref (*buf);
+    *buf = gl_buffer;
   }
 
   GST_BUFFER_OFFSET (*buf) = offset++;
