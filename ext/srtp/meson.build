@@ -10,20 +10,12 @@ if not srtp_dep.found() and cc.has_header_symbol('srtp/srtp.h', 'srtp_init')
 endif
 
 if srtp_dep.found()
-  mkenums = find_program('srtp_mkenum.py')
-  gstsrtp_h = custom_target('gstsrtpenum_h',
-    output : 'gstsrtp-enumtypes.h',
-    input : 'gstsrtp.h',
-    command : [mkenums, glib_mkenums, '@OUTPUT@', '@INPUT@'])
-
-  gstsrtp_c = custom_target('gstsrtpenum_c',
-    output : 'gstsrtp-enumtypes.c',
-    input : 'gstsrtp.h',
-    depends : [gstsrtp_h],
-    command : [mkenums, glib_mkenums, '@OUTPUT@', '@INPUT@'])
+  gstsrtp_enums = gnome.mkenums_simple('gstsrtp-enumtypes',
+    sources : ['gstsrtp.h'],
+    install_header: false)
 
   gstsrtp = library('gstsrtp',
-    srtp_sources, gstsrtp_c, gstsrtp_h,
+    srtp_sources, gstsrtp_enums,
     c_args : gst_plugins_bad_args,
     link_args : noseh_link_args,
     include_directories : [configinc],

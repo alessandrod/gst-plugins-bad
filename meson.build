@@ -420,9 +420,6 @@ libsinc = include_directories('gst-libs')
 
 vs_module_defs_dir = meson.current_source_dir() + '/win32/common/'
 
-# Used by the *_mkenum.py helper scripts
-glib_mkenums = find_program('glib-mkenums')
-
 python3 = import('python3').find_python()
 
 gir = find_program('g-ir-scanner', required : false)
